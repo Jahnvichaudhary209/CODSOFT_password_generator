@@ -1,6 +1,6 @@
 # Custom Password Generator
 
-A secure, command-line password generator tool written in Python. It allows users to fully customize the length and character sets of their passwords to ensure strong account security.
+A secure, command-line password generator tool written in Python. It allows users to fully customize the length and character sets of their passwords to ensure strong account security. Live at : https://cozy-pixie-6d1a2c.netlify.app/
 
 ## 🚀 Features
 
