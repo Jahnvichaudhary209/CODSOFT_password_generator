@@ -29,3 +29,5 @@ A secure, command-line password generator tool written in Python. It allows user
    Navigate into the folder where your script file resides:
    ```bash
    cd path/to/your/password-generator-folder
+   pip install -r requirements.txt
+python app.py
