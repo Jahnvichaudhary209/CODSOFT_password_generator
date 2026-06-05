@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Password Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0c0f; --surface: #13151a; --card: #1a1d24;
+      --border: #2a2d36; --accent: #47ffb8; --text: #f0f2f7;
+      --muted: #6b7280; --error: #ff6b6b; --warn: #ffb347;
+      --weak: #ff6b6b; --fair: #ffb347; --strong: #47b8ff; --vstrong: #47ffb8;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Syne', sans-serif; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(71,255,184,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(71,255,184,0.025) 1px, transparent 1px);
+      background-size: 48px 48px; pointer-events: none;
+    }
+    body::after {
+      content: ''; position: fixed; top: -200px; left: 50%;
+      transform: translateX(-50%); width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(71,255,184,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .wrapper { width: 100%; max-width: 480px; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) both; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(24px);} to{opacity:1;transform:translateY(0);} }
+    .header { display:flex; align-items:center; gap:10px; margin-bottom:28px; }
+    .header-dot { width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent); }
+    .header h1 { font-size:13px; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px; position: relative; overflow: hidden;
+    }
+    .card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background: linear-gradient(90deg, transparent, rgba(71,255,184,0.4), transparent);
+    }
+
+    
+    .pwd-display {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px; margin-bottom: 8px;
+      min-height: 80px; display: flex; align-items: center;
+      justify-content: space-between; gap: 12px;
+    }
+    .pwd-text {
+      font-family: 'DM Mono', monospace; font-size: 18px;
+      color: var(--accent); word-break: break-all; flex: 1;
+      letter-spacing: 0.05em;
+    }
+    .pwd-text.placeholder { color: var(--muted); font-size: 14px; }
+    .copy-btn {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 14px; color: var(--muted); font-family: 'Syne', sans-serif;
+      font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { border-color: var(--accent); color: var(--accent); }
+
+ 
+    .strength-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .strength-bars { display: flex; gap: 4px; flex: 1; margin-right: 12px; }
+    .strength-bar {
+      height: 4px; flex: 1; border-radius: 2px;
+      background: var(--border); transition: background 0.3s;
+    }
+    .strength-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted); min-width: 70px; text-align: right; text-transform: uppercase; }
+
+    
+    .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .length-val { color: var(--accent); font-family: 'DM Mono', monospace; }
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: var(--border); border-radius: 2px; outline: none;
+      margin-bottom: 24px; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 10px rgba(71,255,184,0.4); cursor: pointer;
+    }
+
+ 
+    .checks-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .checks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+    .check-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; cursor: pointer;
+      transition: all 0.15s; user-select: none;
+    }
+    .check-item:hover { border-color: var(--accent); }
+    .check-item.active { border-color: var(--accent); background: rgba(71,255,184,0.05); }
+    .check-box {
+      width: 16px; height: 16px; border-radius: 4px;
+      border: 1.5px solid var(--border); background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .check-item.active .check-box { background: var(--accent); border-color: var(--accent); }
+    .check-tick { color: #0b0c0f; font-size: 10px; font-weight: 700; display: none; }
+    .check-item.active .check-tick { display: block; }
+    .check-text { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .check-item.active .check-text { color: var(--text); }
+
+    
+    .gen-btn {
+      width: 100%; padding: 16px; background: var(--accent); border: none;
+      border-radius: 12px; color: #0b0c0f; font-family: 'Syne', sans-serif;
+      font-size: 15px; font-weight: 700; letter-spacing: 0.05em;
+      cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .gen-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(71,255,184,0.3); }
+    .gen-btn:active { transform: translateY(0); }
+    .gen-btn::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.15) 0%,transparent 50%); }
+
+  
+    .history { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px; }
+    .history-header { font-size:11px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+    .clear-btn { background:none; border:none; color:var(--muted); font-family:'Syne',sans-serif; font-size:10px; cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; transition:color 0.2s; }
+    .clear-btn:hover { color: var(--error); }
+    .history-list { display:flex; flex-direction:column; gap:6px; max-height:120px; overflow-y:auto; }
+    .history-list::-webkit-scrollbar { width:4px; }
+    .history-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+    .history-item {
+      font-family:'DM Mono',monospace; font-size:12px; color:var(--muted);
+      padding:8px 12px; background:var(--surface); border-radius:6px;
+      display:flex; justify-content:space-between; align-items:center;
+      animation: slideIn 0.2s ease both; cursor:pointer; transition:color 0.2s;
+    }
+    .history-item:hover { color: var(--text); }
+    .history-strength { font-size:10px; padding:2px 6px; border-radius:4px; background:var(--border); }
+    .history-empty { font-family:'DM Mono',monospace; font-size:12px; color:var(--border); text-align:center; padding:12px; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-8px);} to{opacity:1;transform:translateX(0);} }
+
+    .error-msg { color:var(--error); font-family:'DM Mono',monospace; font-size:12px; margin-bottom:12px; min-height:16px; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="header-dot"></div>
+      <h1>Password Generator &mdash; v1.0</h1>
+    </div>
+    <div class="card">
+
+  
+      <div class="pwd-display">
+        <div class="pwd-text placeholder" id="pwdText">Click Generate to create a password</div>
+        <button class="copy-btn" id="copyBtn" onclick="copyPassword()">Copy</button>
+      </div>
+
+     
+      <div class="strength-row">
+        <div class="strength-bars">
+          <div class="strength-bar" id="bar1"></div>
+          <div class="strength-bar" id="bar2"></div>
+          <div class="strength-bar" id="bar3"></div>
+          <div class="strength-bar" id="bar4"></div>
+        </div>
+        <div class="strength-label" id="strengthLabel">—</div>
+      </div>
+
+     
+      <div class="section-label">
+        Length <span class="length-val" id="lengthVal">16</span>
+      </div>
+      <input type="range" id="lengthSlider" min="4" max="64" value="16"
+             oninput="document.getElementById('lengthVal').textContent=this.value"/>
+
+     
+      <div class="checks-label">Include</div>
+      <div class="checks-grid">
+        <div class="check-item active" id="chk-upper" onclick="toggleCheck('upper')">
+          <div class="check-box"><span class="check-tick">✓</span></div>
+          <span class="check-text">Uppercase</span>
+        </div>
+        <div class="check-item active" id="chk-lower" onclick="toggleCheck('lower')">
+          <div class="check-box"><span class="check-tick">✓</span></div>
+          <span class="check-text">Lowercase</span>
+        </div>
+        <div class="check-item active" id="chk-digits" onclick="toggleCheck('digits')">
+          <div class="check-box"><span class="check-tick">✓</span></div>
+          <span class="check-text">Numbers</span>
+        </div>
+        <div class="check-item active" id="chk-symbols" onclick="toggleCheck('symbols')">
+          <div class="check-box"><span class="check-tick">✓</span></div>
+          <span class="check-text">Symbols</span>
+        </div>
+      </div>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <button class="gen-btn" onclick="generate()">Generate Password</button>
+
+      
+      <div class="history">
+        <div class="history-header">
+          History
+          <button class="clear-btn" onclick="clearHistory()">Clear</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="history-empty">No passwords generated yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const checks = { upper: true, lower: true, digits: true, symbols: true };
+    const strengthColors = { 'Weak':'#ff6b6b','Fair':'#ffb347','Strong':'#47b8ff','Very Strong':'#47ffb8' };
+    const history = [];
+    let currentPassword = '';
+
+    function toggleCheck(type) {
+      checks[type] = !checks[type];
+      const el = document.getElementById('chk-' + type);
+      el.classList.toggle('active', checks[type]);
+    }
+
+    async function generate() {
+      document.getElementById('errorMsg').textContent = '';
+      const length = document.getElementById('lengthSlider').value;
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            length: parseInt(length),
+            uppercase: checks.upper,
+            lowercase: checks.lower,
+            digits: checks.digits,
+            symbols: checks.symbols
+          })
+        });
+        const data = await res.json();
+        if (data.error) {
+          document.getElementById('errorMsg').textContent = data.error;
+          return;
+        }
+        currentPassword = data.password;
+        const pwdEl = document.getElementById('pwdText');
+        pwdEl.textContent = data.password;
+        pwdEl.classList.remove('placeholder');
+
+        
+        updateStrength(data.strength);
+
+        
+        history.unshift({ pwd: data.password, strength: data.strength });
+        if (history.length > 8) history.pop();
+        renderHistory();
+
+        // Reset copy button
+        const copyBtn = document.getElementById('copyBtn');
+        copyBtn.textContent = 'Copy';
+        copyBtn.classList.remove('copied');
+      } catch {
+        document.getElementById('errorMsg').textContent = 'Something went wrong';
+      }
+    }
+
+    function updateStrength(level) {
+      const color = strengthColors[level] || '#6b7280';
+      const count = {'Weak':1,'Fair':2,'Strong':3,'Very Strong':4}[level] || 0;
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('bar' + i).style.background = i <= count ? color : 'var(--border)';
+      }
+      const lbl = document.getElementById('strengthLabel');
+      lbl.textContent = level;
+      lbl.style.color = color;
+    }
+
+    function copyPassword() {
+      if (!currentPassword) return;
+      navigator.clipboard.writeText(currentPassword).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      if (history.length === 0) {
+        list.innerHTML = '<div class="history-empty">No passwords generated yet</div>';
+        return;
+      }
+      list.innerHTML = history.map(h =>
+        `<div class="history-item" onclick="useHistoryItem('${h.pwd}')">
+          <span>${h.pwd.substring(0, 28)}${h.pwd.length > 28 ? '…' : ''}</span>
+          <span class="history-strength">${h.strength}</span>
+        </div>`
+      ).join('');
+    }
+
+    function useHistoryItem(pwd) {
+      currentPassword = pwd;
+      const pwdEl = document.getElementById('pwdText');
+      pwdEl.textContent = pwd;
+      pwdEl.classList.remove('placeholder');
+    }
+
+    function clearHistory() { history.length = 0; renderHistory(); }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') generate(); });
+  </script>
+</body>
+</html>
