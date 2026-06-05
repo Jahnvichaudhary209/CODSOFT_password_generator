@@ -1,52 +1,66 @@
+from flask import Flask, render_template, request, jsonify
 import random
 import string
 
-def generate_password(length, use_upper, use_digits, use_special):
-    
-    char_pool = string.ascii_lowercase
-    
- 
-    if use_upper:
-        char_pool += string.ascii_uppercase
-    if use_digits:
-        char_pool += string.digits
-    if use_special:
-        char_pool += string.punctuation
+app = Flask(__name__)
 
-   
-    if not char_pool:
-        return ""
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-    
-    password = "".join(random.choice(char_pool) for _ in range(length))
-    return password
-
-def main():
-    print("--- Robust Password Generator ---")
-    
-  
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
     try:
-        length = int(input("Enter desired password length (e.g., 12): "))
-        if length < 4:
-            print("To ensure basic security, length must be at least 4.")
-            return
-    except ValueError:
-        print("Please enter a valid whole number for the length.")
-        return
+        length = int(data.get('length', 12))
+        use_upper = data.get('uppercase', True)
+        use_lower = data.get('lowercase', True)
+        use_digits = data.get('digits', True)
+        use_symbols = data.get('symbols', True)
 
-    
-    print("\nConfigure password settings:")
-    include_upper = input("Include uppercase letters? (y/n): ").strip().lower() == 'y'
-    include_digits = input("Include numbers? (y/n): ").strip().lower() == 'y'
-    include_special = input("Include special characters/symbols? (y/n): ").strip().lower() == 'y'
+        if length < 4 or length > 128:
+            return jsonify({'error': 'Length must be between 4 and 128'}), 400
 
-  
-    generated_pwd = generate_password(length, include_upper, include_digits, include_special)
-    
-   
-    print("\n" + "="*30)
-    print(f"Generated Password: {generated_pwd}")
-    print("="*30)
+        characters = ''
+        guaranteed = []
 
-if __name__ == "__main__":
-    main()
+        if use_lower:
+            characters += string.ascii_lowercase
+            guaranteed.append(random.choice(string.ascii_lowercase))
+        if use_upper:
+            characters += string.ascii_uppercase
+            guaranteed.append(random.choice(string.ascii_uppercase))
+        if use_digits:
+            characters += string.digits
+            guaranteed.append(random.choice(string.digits))
+        if use_symbols:
+            symbols = '!@#$%^&*()-_=+[]{}|;:,.<>?'
+            characters += symbols
+            guaranteed.append(random.choice(symbols))
+
+        if not characters:
+            return jsonify({'error': 'Select at least one character type'}), 400
+
+        remaining = [random.choice(characters) for _ in range(length - len(guaranteed))]
+        password_list = guaranteed + remaining
+        random.shuffle(password_list)
+        password = ''.join(password_list)
+
+       
+        strength = len([x for x in [use_upper, use_lower, use_digits, use_symbols] if x])
+        if length < 8 or strength == 1:
+            level = 'Weak'
+        elif length < 12 or strength == 2:
+            level = 'Fair'
+        elif length < 16 or strength == 3:
+            level = 'Strong'
+        else:
+            level = 'Very Strong'
+
+        return jsonify({'password': password, 'strength': level})
+
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid input'}), 400
+
+if __name__ == '__main__':
+    app.run(debug=True)
